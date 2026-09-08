@@ -36,9 +36,25 @@
   #readout { position: fixed; right: 8px; bottom: 8px; z-index: 10; margin: 0;
              padding: 8px; max-width: 46ch; font: 11px/1.45 ui-monospace, monospace;
              background: #111; color: #0f0; border-radius: 6px; white-space: pre-wrap; }
+
+  /* Sticky-left like #bar, so the intro stays put while the table scrolls sideways. */
+  #intro { position: sticky; left: 0; width: 100vw; box-sizing: border-box;
+           padding: 12px 8px 4px; max-width: 90ch; }
+  #intro h1 { margin: 0 0 4px; font-size: 15px; }
+  #intro p { margin: 0; color: #444; }
 </style>
 </head>
 <body>
+
+<div id="intro">
+  <h1>Where does this engine put a popover?</h1>
+  <p>Hover a column header below, then scroll the table sideways and hover one of the
+  later columns. The popup should sit under whichever header you are on. Switch how it
+  is placed with the buttons below — two use CSS anchor positioning, one measures the
+  header in JavaScript — and watch the readout in the corner: <b>ALIGNED</b> means the
+  popup found its header. In a web view without anchor positioning, only the measured
+  mode does. <b>environment</b> reports what this engine actually supports.</p>
+</div>
 
 <div id="bar">
   <strong>placement:</strong>
