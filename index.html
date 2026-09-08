@@ -1,272 +1,357 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<title>Header hover popup — placement MVP</title>
-<style>
-  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; }
+    <meta charset="utf-8">
+    <title>Header hover popup — placement MVP</title>
+    <style>
+        body {
+            margin: 0;
+            font: 13px/1.4 system-ui, sans-serif;
+        }
 
-  /* Controls sit above the table and stay put while it scrolls sideways. */
-  #bar { position: sticky; left: 0; z-index: 5; display: flex; gap: 16px;
-         align-items: center; padding: 8px; background: #eef; width: 100vw;
-         box-sizing: border-box; }
+        /* Controls sit above the table and stay put while it scrolls sideways. */
+        #bar {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            padding: 8px;
+            background: #eef;
+            width: 100vw;
+            box-sizing: border-box;
+        }
 
-  table { border-collapse: collapse; }
-  th, td { border: 1px solid #ccc; padding: 4px 8px; white-space: nowrap; }
-  thead th { position: sticky; top: 0; background: #f4f4f4; cursor: default; }
-  thead th:hover { background: #dde6ff; }
+        table {
+            border-collapse: collapse;
+        }
 
-  /* The popup. One element, reused for every header. `inset: auto` so that each
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 4px 8px;
+            white-space: nowrap;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #f4f4f4;
+            cursor: default;
+        }
+
+        thead th:hover {
+            background: #dde6ff;
+        }
+
+        /* The popup. One element, reused for every header. `inset: auto` so that each
      mode below supplies the placement and nothing is inherited between them. */
-  #pop { position: fixed; inset: auto; margin: 0; min-width: 200px;
-         padding: 8px; background: #fff; border: 1px solid #789;
-         border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+        #pop {
+            position: fixed;
+            inset: auto;
+            margin: 0;
+            min-width: 200px;
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #789;
+            border-radius: 6px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+        }
 
-  /* Mode 1 — what amazejs does today. */
-  html.m-anchor #pop {
-      position-area: block-end span-inline-end;
-      position-try-fallbacks: flip-block, flip-inline;
-      position-try-order: most-block-size;
-  }
-  /* Mode 2 — the anchor primitives without position-area. */
-  html.m-longhand #pop { top: anchor(bottom); left: anchor(left); }
-  /* Mode 3 — JS measures, the stylesheet lays out. */
-  html.m-measured #pop { top: calc(var(--y, 0px) + 4px); left: var(--x, 0px); }
+        /* Mode 1 — what amazejs does today. */
+        html.m-anchor #pop {
+            position-area: block-end span-inline-end;
+            position-try-fallbacks: flip-block, flip-inline;
+            position-try-order: most-block-size;
+        }
 
-  #readout { position: fixed; right: 8px; bottom: 8px; z-index: 10; margin: 0;
-             padding: 8px; max-width: 46ch; font: 11px/1.45 ui-monospace, monospace;
-             background: #111; color: #0f0; border-radius: 6px; white-space: pre-wrap; }
+        /* Mode 2 — the anchor primitives without position-area. */
+        html.m-longhand #pop {
+            top: anchor(bottom);
+            left: anchor(left);
+        }
 
-  /* Sticky-left like #bar, so the intro stays put while the table scrolls sideways. */
-  #intro { position: sticky; left: 0; width: 100vw; box-sizing: border-box;
-           padding: 12px 8px 4px; max-width: 90ch; }
-  #intro h1 { margin: 0 0 4px; font-size: 15px; }
-  #intro p { margin: 0 0 8px; color: #444; }
-  #intro details { color: #444; }
-  #intro summary { cursor: pointer; color: #06c; }
-  #intro details p { margin: 8px 0 0; }
-</style>
+        /* Mode 3 — JS measures, the stylesheet lays out. */
+        html.m-measured #pop {
+            top: calc(var(--y, 0px) + 4px);
+            left: var(--x, 0px);
+        }
+
+        #readout {
+            position: fixed;
+            right: 8px;
+            bottom: 8px;
+            z-index: 10;
+            margin: 0;
+            padding: 8px;
+            max-width: 46ch;
+            font: 11px/1.45 ui-monospace, monospace;
+            background: #111;
+            color: #0f0;
+            border-radius: 6px;
+            white-space: pre-wrap;
+        }
+
+        /* Sticky-left like #bar, so the intro stays put while the table scrolls sideways. */
+        #intro {
+            position: sticky;
+            left: 0;
+            width: 100vw;
+            box-sizing: border-box;
+            padding: 12px 8px 4px;
+            max-width: 90ch;
+        }
+
+        #intro h1 {
+            margin: 0 0 4px;
+            font-size: 15px;
+        }
+
+        #intro p {
+            margin: 0 0 8px;
+            color: #444;
+        }
+
+        #intro details {
+            color: #444;
+        }
+
+        #intro summary {
+            cursor: pointer;
+            color: #06c;
+        }
+
+        #intro details p {
+            margin: 8px 0 0;
+        }
+    </style>
 </head>
+
 <body>
 
-<div id="intro">
-  <h1>Where does this engine put a popover?</h1>
-  <p>Hover a column header below, then scroll the table sideways and hover one of the
-  later columns. The popup should sit under whichever header you are on. Switch how it
-  is placed with the buttons below — two use CSS anchor positioning, one measures the
-  header in JavaScript — and watch the readout in the corner: <b>ALIGNED</b> means the
-  popup found its header. In a web view without anchor positioning, only the measured
-  mode does. <b>environment</b> reports what this engine actually supports.</p>
+    <div id="intro">
+        <h1>Where does this engine put a popover?</h1>
+        <p>Hover a column header below, then scroll the table sideways and hover one of the
+            later columns. The popup should sit under whichever header you are on. Switch how it
+            is placed with the buttons below — two use CSS anchor positioning, one measures the
+            header in JavaScript — and watch the readout in the corner: <b>ALIGNED</b> means the
+            popup found its header. In a web view without anchor positioning, only the measured
+            mode does. <b>environment</b> reports what this engine actually supports.</p>
 
-  <details>
-    <summary>Why this page exists</summary>
-    <p>A page placed its dropdowns with CSS anchor positioning. In Safari that works.
-    Bundled into a desktop app with Electrobun, the same code broke: menus drew
-    <em>on top of</em> the buttons that opened them, and a column filter worked for the
-    columns visible on load, then opened somewhere off-screen for any column you had to
-    scroll right to reach.</p>
+        <details>
+            <summary>Why this page exists</summary>
+            <p>In Safari a page placed its dropdowns with CSS anchor positioning, and that works fine,
+                bundled into a desktop app with Electrobun for instance, the same code broke: menus drew
+                <em>on top of</em> the buttons that opened them, and popups for column headers
+                were visible on load, then opened somewhere off-screen for any column you had to
+                scroll right to reach.
+            </p>
 
-    <p>The cause is that a desktop shell which doesn't bundle its own Chromium —
-    Electrobun, Tauri, a SwiftUI wrapper — renders in the system <b>WKWebView</b>, and
-    that is not the same engine as Safari. Anchor positioning is an experimental WebKit
-    feature: Safari 26 turns it on, WKWebView leaves it off, and a page cannot turn it
-    on for itself. With the rules dropped, a <code>position: fixed</code> popover falls
-    back to its <em>static</em> position — where it happens to sit in the document,
-    uncorrected for scroll. That is exactly the pattern above: fine until the page is
-    scrolled, then wrong by however far you scrolled.</p>
+            <p>The cause is that a desktop shell which doesn't bundle its own Chromium —
+                Electrobun, Tauri, a SwiftUI wrapper — renders in the system <b>WKWebView</b>, and
+                that is not the same engine as Safari. Anchor positioning is an experimental WebKit
+                feature: Safari 26 turns it on, WKWebView leaves it off, and a page cannot turn it
+                on for itself. With the rules dropped, a <code>position: fixed</code> popover falls
+                back to its <em>static</em> position — where it happens to sit in the document,
+                uncorrected for scroll. That is exactly the pattern above: fine until the page is
+                scrolled, then wrong by however far you scrolled.</p>
 
-    <p>Nor is the flag a fix. Forced on through
-    <code>WKPreferences._setEnabled(_:forFeature:)</code>, that WebKit still has no
-    <code>position-area</code>, and the <code>anchor()</code> it does have resolves to
-    document coordinates and ignores scroll — the second mode above, and it fails here
-    too. So the fallback has to be a measured one, which is the third.</p>
+            <p>Nor is the flag a fix. Forced on through
+                <code>WKPreferences._setEnabled(_:forFeature:)</code>, that WebKit still has no
+                <code>position-area</code>, and the <code>anchor()</code> it does have resolves to
+                document coordinates and ignores scroll — the second mode above, and it fails here
+                too. So the fallback has to be a measured one, which is the third.
+            </p>
 
-    <p>"Runs the same in the app" holds only as far as the app's engine matches the
-    browser's. Feature-detect the parts you rely on, and keep a path that works when
-    they are missing.</p>
-  </details>
-</div>
+            <p>"Runs the same in the app" holds only as far as the app's engine matches the
+                browser's. Feature-detect the parts you rely on, and keep a path that works when
+                they are missing.</p>
+        </details>
+    </div>
 
-<div id="bar">
-  <strong>placement:</strong>
-  <label><input type="radio" name="mode" value="anchor"> anchor + position-area</label>
-  <label><input type="radio" name="mode" value="longhand"> anchor() longhands</label>
-  <label><input type="radio" name="mode" value="measured"> measured (getBoundingClientRect)</label>
-  <span id="support"></span>
-  <button id="envbtn" type="button">environment</button>
-</div>
+    <div id="bar">
+        <strong>placement:</strong>
+        <label><input type="radio" name="mode" value="anchor"> anchor + position-area</label>
+        <label><input type="radio" name="mode" value="longhand"> anchor() longhands</label>
+        <label><input type="radio" name="mode" value="measured"> measured (getBoundingClientRect)</label>
+        <span id="support"></span>
+        <button id="envbtn" type="button">environment</button>
+    </div>
 
-<table id="t"></table>
+    <table id="t"></table>
 
-<div id="pop" popover="manual"></div>
-<pre id="readout">hover a column header</pre>
+    <div id="pop" popover="manual"></div>
+    <pre id="readout">hover a column header</pre>
 
-<script>
-const COLS = 50, ROWS = 10;
+    <script>
+        const COLS = 50, ROWS = 10;
 
-// ---- table -------------------------------------------------------------
-const t = document.getElementById('t');
-const thead = t.createTHead(), hr = thead.insertRow();
-for (let c = 0; c < COLS; c++) {
-    const th = document.createElement('th');
-    th.textContent = `column_${String(c).padStart(2, '0')}`;
-    th.dataset.col = c;
-    hr.appendChild(th);
-}
-const tb = t.createTBody();
-for (let r = 0; r < ROWS; r++) {
-    const tr = tb.insertRow();
-    for (let c = 0; c < COLS; c++) tr.insertCell().textContent = `r${r}c${c}`;
-}
+        // ---- table -------------------------------------------------------------
+        const t = document.getElementById('t');
+        const thead = t.createTHead(), hr = thead.insertRow();
+        for (let c = 0; c < COLS; c++) {
+            const th = document.createElement('th');
+            th.textContent = `column_${String(c).padStart(2, '0')}`;
+            th.dataset.col = c;
+            hr.appendChild(th);
+        }
+        const tb = t.createTBody();
+        for (let r = 0; r < ROWS; r++) {
+            const tr = tb.insertRow();
+            for (let c = 0; c < COLS; c++) tr.insertCell().textContent = `r${r}c${c}`;
+        }
 
-// ---- mode --------------------------------------------------------------
-const pop = document.getElementById('pop');
-const readout = document.getElementById('readout');
-const MODES = ['anchor', 'longhand', 'measured'];
-let mode = new URLSearchParams(location.search).get('mode') || 'measured';
-if (!MODES.includes(mode)) mode = 'measured';
+        // ---- mode --------------------------------------------------------------
+        const pop = document.getElementById('pop');
+        const readout = document.getElementById('readout');
+        const MODES = ['anchor', 'longhand', 'measured'];
+        let mode = new URLSearchParams(location.search).get('mode') || 'measured';
+        if (!MODES.includes(mode)) mode = 'measured';
 
-function setMode(m) {
-    mode = m;
-    MODES.forEach(x => document.documentElement.classList.toggle(`m-${x}`, x === m));
-    document.querySelector(`input[value="${m}"]`).checked = true;
-    if (current) place(current);
-}
-document.querySelectorAll('input[name=mode]').forEach(i =>
-    i.addEventListener('change', () => setMode(i.value)));
+        function setMode(m) {
+            mode = m;
+            MODES.forEach(x => document.documentElement.classList.toggle(`m-${x}`, x === m));
+            document.querySelector(`input[value="${m}"]`).checked = true;
+            if (current) place(current);
+        }
+        document.querySelectorAll('input[name=mode]').forEach(i =>
+            i.addEventListener('change', () => setMode(i.value)));
 
-// ---- environment -------------------------------------------------------
-// Every CSS feature the placement modes rest on, plus what engine is running.
-const FEATURES = [
-    ['position-area', 'block-end span-inline-end'],
-    ['anchor-name', '--a'],
-    ['position-anchor', '--a'],
-    ['top', 'anchor(bottom)'],
-    ['left', 'anchor(center)'],
-    ['width', 'anchor-size(width)'],
-    ['position-try-fallbacks', 'flip-block'],
-    ['position-try-order', 'most-block-size'],
-    ['position-visibility', 'anchors-visible'],
-    ['height', '100dvh'],
-    ['color', 'color-mix(in srgb, red 15%, transparent)'],
-    ['color', 'light-dark(red, blue)'],
-];
+        // ---- environment -------------------------------------------------------
+        // Every CSS feature the placement modes rest on, plus what engine is running.
+        const FEATURES = [
+            ['position-area', 'block-end span-inline-end'],
+            ['anchor-name', '--a'],
+            ['position-anchor', '--a'],
+            ['top', 'anchor(bottom)'],
+            ['left', 'anchor(center)'],
+            ['width', 'anchor-size(width)'],
+            ['position-try-fallbacks', 'flip-block'],
+            ['position-try-order', 'most-block-size'],
+            ['position-visibility', 'anchors-visible'],
+            ['height', '100dvh'],
+            ['color', 'color-mix(in srgb, red 15%, transparent)'],
+            ['color', 'light-dark(red, blue)'],
+        ];
 
-// WebKit's UA version is frozen at 605.1.15 and says nothing about the build, so
-// pair it with the Safari/Version token (absent in a plain WKWebView — that absence
-// is itself how you tell an embedded web view from the browser).
-function environment() {
-    const ua = navigator.userAgent;
-    const safari = ua.match(/Version\/([\d.]+) Safari/);
-    const webkit = ua.match(/AppleWebKit\/([\d.]+)/);
-    const lines = [
-        `engine     ${webkit ? 'AppleWebKit/' + webkit[1] : 'not WebKit'}`,
-        `browser    ${safari ? 'Safari ' + safari[1] : 'embedded web view (no Version/ token)'}`,
-        `popover    ${'showPopover' in HTMLElement.prototype}`,
-        `platform   ${navigator.platform}  dpr=${devicePixelRatio}`,
-        `window     ${innerWidth}x${innerHeight}`,
-        `ua         ${ua}`,
-        '',
-        ...FEATURES.map(([p, v]) => `${CSS.supports(p, v) ? 'yes ' : 'NO  '} ${p}: ${v}`),
-    ];
-    return lines.join('\n');
-}
+        // WebKit's UA version is frozen at 605.1.15 and says nothing about the build, so
+        // pair it with the Safari/Version token (absent in a plain WKWebView — that absence
+        // is itself how you tell an embedded web view from the browser).
+        function environment() {
+            const ua = navigator.userAgent;
+            const safari = ua.match(/Version\/([\d.]+) Safari/);
+            const webkit = ua.match(/AppleWebKit\/([\d.]+)/);
+            const lines = [
+                `engine     ${webkit ? 'AppleWebKit/' + webkit[1] : 'not WebKit'}`,
+                `browser    ${safari ? 'Safari ' + safari[1] : 'embedded web view (no Version/ token)'}`,
+                `popover    ${'showPopover' in HTMLElement.prototype}`,
+                `platform   ${navigator.platform}  dpr=${devicePixelRatio}`,
+                `window     ${innerWidth}x${innerHeight}`,
+                `ua         ${ua}`,
+                '',
+                ...FEATURES.map(([p, v]) => `${CSS.supports(p, v) ? 'yes ' : 'NO  '} ${p}: ${v}`),
+            ];
+            return lines.join('\n');
+        }
 
-document.getElementById('support').textContent =
-    `position-area:${CSS.supports('position-area', 'block-end')}` +
-    ` anchor-name:${CSS.supports('anchor-name', '--a')}` +
-    ` anchor():${CSS.supports('top', 'anchor(bottom)')}`;
+        document.getElementById('support').textContent =
+            `position-area:${CSS.supports('position-area', 'block-end')}` +
+            ` anchor-name:${CSS.supports('anchor-name', '--a')}` +
+            ` anchor():${CSS.supports('top', 'anchor(bottom)')}`;
 
-document.getElementById('envbtn').addEventListener('click', () => {
-    readout.textContent = environment();
-    console.log(environment());
-});
-
-// Logged on load as well, so a headless run or a remote inspector has it without
-// anyone clicking anything.
-console.log(environment());
-
-// ---- placement ---------------------------------------------------------
-let current = null;
-
-function place(th) {
-    if (mode === 'measured') {
-        const r = th.getBoundingClientRect();
-        pop.style.setProperty('--x', `${r.left}px`);
-        pop.style.setProperty('--y', `${r.bottom}px`);
-    } else {
-        // Both anchor modes need the pair named. One name, re-pointed at
-        // whichever header is hovered.
-        document.querySelectorAll('th[data-anchored]').forEach(el => {
-            el.style.removeProperty('anchor-name');
-            delete el.dataset.anchored;
+        document.getElementById('envbtn').addEventListener('click', () => {
+            readout.textContent = environment();
+            console.log(environment());
         });
-        th.style.setProperty('anchor-name', '--th');
-        th.dataset.anchored = '1';
-        pop.style.setProperty('position-anchor', '--th');
-    }
-    report(th);
-}
 
-function show(th) {
-    current = th;
-    pop.textContent = `${th.textContent}  (index ${th.dataset.col})`;
-    if (!pop.matches(':popover-open')) pop.showPopover();
-    place(th);
-}
+        // Logged on load as well, so a headless run or a remote inspector has it without
+        // anyone clicking anything.
+        console.log(environment());
 
-function hide() {
-    current = null;
-    if (pop.matches(':popover-open')) pop.hidePopover();
-}
+        // ---- placement ---------------------------------------------------------
+        let current = null;
 
-hr.addEventListener('mouseover', e => {
-    const th = e.target.closest('th');
-    if (th) show(th);
-});
-hr.addEventListener('mouseleave', hide);
+        function place(th) {
+            if (mode === 'measured') {
+                const r = th.getBoundingClientRect();
+                pop.style.setProperty('--x', `${r.left}px`);
+                pop.style.setProperty('--y', `${r.bottom}px`);
+            } else {
+                // Both anchor modes need the pair named. One name, re-pointed at
+                // whichever header is hovered.
+                document.querySelectorAll('th[data-anchored]').forEach(el => {
+                    el.style.removeProperty('anchor-name');
+                    delete el.dataset.anchored;
+                });
+                th.style.setProperty('anchor-name', '--th');
+                th.dataset.anchored = '1';
+                pop.style.setProperty('position-anchor', '--th');
+            }
+            report(th);
+        }
 
-// A fixed box does not follow its trigger: re-place while open.
-addEventListener('scroll', () => { if (current) place(current); }, { capture: true, passive: true });
-addEventListener('resize', () => { if (current) place(current); });
+        function show(th) {
+            current = th;
+            pop.textContent = `${th.textContent}  (index ${th.dataset.col})`;
+            if (!pop.matches(':popover-open')) pop.showPopover();
+            place(th);
+        }
 
-// ---- readout -----------------------------------------------------------
-const px = n => Math.round(n);
+        function hide() {
+            current = null;
+            if (pop.matches(':popover-open')) pop.hidePopover();
+        }
 
-function report(th) {
-    const a = th.getBoundingClientRect(), p = pop.getBoundingClientRect();
-    const cs = getComputedStyle(pop);
-    const dx = px(p.left - a.left), dy = px(p.top - a.bottom);
-    const onScreen = p.left >= 0 && p.top >= 0
-        && p.right <= innerWidth && p.bottom <= innerHeight;
-    readout.textContent =
-        `mode      ${mode}\n` +
-        `scroll    x=${px(scrollX)} y=${px(scrollY)}   window ${innerWidth}x${innerHeight}\n` +
-        `header    left=${px(a.left)} top=${px(a.top)} bottom=${px(a.bottom)}\n` +
-        `popup     left=${px(p.left)} top=${px(p.top)} w=${px(p.width)} h=${px(p.height)}\n` +
-        `computed  top=${cs.top} left=${cs.left}\n` +
-        `offset    dx=${dx} dy=${dy}   ${Math.abs(dx) <= 2 && dy >= 0 && dy <= 8 ? 'ALIGNED' : 'WRONG'}\n` +
-        `on-screen ${onScreen}`;
-    return readout.textContent;
-}
+        hr.addEventListener('mouseover', e => {
+            const th = e.target.closest('th');
+            if (th) show(th);
+        });
+        hr.addEventListener('mouseleave', hide);
 
-// ---- headless driver ---------------------------------------------------
-// PROBE(col) scrolls that header into view, opens the popup on it and returns
-// the readout. Two frames between each step so layout has settled.
-window.ENV = environment;
+        // A fixed box does not follow its trigger: re-place while open.
+        addEventListener('scroll', () => {if (current) place(current);}, {capture: true, passive: true});
+        addEventListener('resize', () => {if (current) place(current);});
 
-window.PROBE = function (col) {
-    const th = hr.children[col];
-    return new Promise(resolve => {
-        th.scrollIntoView({ block: 'nearest', inline: 'center' });
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            show(th);
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve(report(th))));
-        }));
-    });
-};
+        // ---- readout -----------------------------------------------------------
+        const px = n => Math.round(n);
 
-setMode(mode);
-</script>
+        function report(th) {
+            const a = th.getBoundingClientRect(), p = pop.getBoundingClientRect();
+            const cs = getComputedStyle(pop);
+            const dx = px(p.left - a.left), dy = px(p.top - a.bottom);
+            const onScreen = p.left >= 0 && p.top >= 0
+                && p.right <= innerWidth && p.bottom <= innerHeight;
+            readout.textContent =
+                `mode      ${mode}\n` +
+                `scroll    x=${px(scrollX)} y=${px(scrollY)}   window ${innerWidth}x${innerHeight}\n` +
+                `header    left=${px(a.left)} top=${px(a.top)} bottom=${px(a.bottom)}\n` +
+                `popup     left=${px(p.left)} top=${px(p.top)} w=${px(p.width)} h=${px(p.height)}\n` +
+                `computed  top=${cs.top} left=${cs.left}\n` +
+                `offset    dx=${dx} dy=${dy}   ${Math.abs(dx) <= 2 && dy >= 0 && dy <= 8 ? 'ALIGNED' : 'WRONG'}\n` +
+                `on-screen ${onScreen}`;
+            return readout.textContent;
+        }
+
+        // ---- headless driver ---------------------------------------------------
+        // PROBE(col) scrolls that header into view, opens the popup on it and returns
+        // the readout. Two frames between each step so layout has settled.
+        window.ENV = environment;
+
+        window.PROBE = function (col) {
+            const th = hr.children[col];
+            return new Promise(resolve => {
+                th.scrollIntoView({block: 'nearest', inline: 'center'});
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    show(th);
+                    requestAnimationFrame(() => requestAnimationFrame(() => resolve(report(th))));
+                }));
+            });
+        };
+
+        setMode(mode);
+    </script>
 </body>
+
 </html>
