@@ -41,7 +41,10 @@
   #intro { position: sticky; left: 0; width: 100vw; box-sizing: border-box;
            padding: 12px 8px 4px; max-width: 90ch; }
   #intro h1 { margin: 0 0 4px; font-size: 15px; }
-  #intro p { margin: 0; color: #444; }
+  #intro p { margin: 0 0 8px; color: #444; }
+  #intro details { color: #444; }
+  #intro summary { cursor: pointer; color: #06c; }
+  #intro details p { margin: 8px 0 0; }
 </style>
 </head>
 <body>
@@ -54,6 +57,34 @@
   header in JavaScript — and watch the readout in the corner: <b>ALIGNED</b> means the
   popup found its header. In a web view without anchor positioning, only the measured
   mode does. <b>environment</b> reports what this engine actually supports.</p>
+
+  <details>
+    <summary>Why this page exists</summary>
+    <p>A data table library placed its dropdowns with CSS anchor positioning. In Safari
+    that works. Bundled into a desktop app with Electrobun, the same code broke: the
+    File and Settings menus drew <em>on top of</em> the toolbar, and a column filter
+    worked for the columns visible on load, then opened somewhere off-screen for any
+    column you had to scroll right to reach.</p>
+
+    <p>The cause is that a desktop shell which doesn't bundle its own Chromium —
+    Electrobun, Tauri, a SwiftUI wrapper — renders in the system <b>WKWebView</b>, and
+    that is not the same engine as Safari. Anchor positioning is an experimental WebKit
+    feature: Safari 26 turns it on, WKWebView leaves it off, and a page cannot turn it
+    on for itself. With the rules dropped, a <code>position: fixed</code> popover falls
+    back to its <em>static</em> position — where it happens to sit in the document,
+    uncorrected for scroll. That is exactly the pattern above: fine until the page is
+    scrolled, then wrong by however far you scrolled.</p>
+
+    <p>Nor is the flag a fix. Forced on through
+    <code>WKPreferences._setEnabled(_:forFeature:)</code>, that WebKit still has no
+    <code>position-area</code>, and the <code>anchor()</code> it does have resolves to
+    document coordinates and ignores scroll — the second mode above, and it fails here
+    too. So the fallback has to be a measured one, which is the third.</p>
+
+    <p>So: "write once, runs the same in the app" holds right up until the app's engine
+    is a different engine. This page is how you find out which one you are in, before
+    the bug report does.</p>
+  </details>
 </div>
 
 <div id="bar">
