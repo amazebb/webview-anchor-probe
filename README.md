@@ -39,11 +39,10 @@ ES modules are not needed, but `file://` works fine:
 open index.html
 ```
 
-Or serve it, to test from another device:
+Or serve it [locally](http://localhost:8000/), to test from another device:
 
 ```
 python3 -m http.server 8000
-# http://localhost:8000/
 ```
 
 To drive it headlessly, the page exposes `window.ENV()` and `window.PROBE(columnIndex)`,
