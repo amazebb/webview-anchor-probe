@@ -28,8 +28,21 @@ the right edge of the window once a wide table is scrolled. Enabling the feature
 still unimplemented, and the `anchor()` that does exist resolves to document
 coordinates, ignoring scroll.
 
-Measured on macOS 15.7.9, AppleWebKit 621.3.11: of the three modes, only `measured`
-places the popup correctly, at any scroll offset, in a bare `WKWebView`.
+Measured on macOS 15.7.9, WebKit 621.3.11: of the three modes, only `measured` places
+the popup correctly, at any scroll offset, in a bare `WKWebView`.
+
+That build number comes from the framework itself, not from the user agent:
+
+```
+$ defaults read /System/Library/Frameworks/WebKit.framework/Resources/version.plist
+CFBundleShortVersionString = 20621;
+CFBundleVersion = "20621.3.11.11.3";
+```
+
+The `AppleWebKit/605.1.15` in the UA string is frozen — every WebKit has reported it
+since 2017, whatever the build — so it can't date a finding, and the probe doesn't try
+to. It uses the presence of a `Version/` token to tell a browser from an embedded web
+view, and feature detection for everything else.
 
 ## Usage
 
