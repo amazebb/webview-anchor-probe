@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Header hover popup — placement MVP</title>
+<style>
+  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; }
+
+  /* Controls sit above the table and stay put while it scrolls sideways. */
+  #bar { position: sticky; left: 0; z-index: 5; display: flex; gap: 16px;
+         align-items: center; padding: 8px; background: #eef; width: 100vw;
+         box-sizing: border-box; }
+
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #ccc; padding: 4px 8px; white-space: nowrap; }
+  thead th { position: sticky; top: 0; background: #f4f4f4; cursor: default; }
+  thead th:hover { background: #dde6ff; }
+
+  /* The popup. One element, reused for every header. `inset: auto` so that each
+     mode below supplies the placement and nothing is inherited between them. */
+  #pop { position: fixed; inset: auto; margin: 0; min-width: 200px;
+         padding: 8px; background: #fff; border: 1px solid #789;
+         border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+
+  /* Mode 1 — what amazejs does today. */
+  html.m-anchor #pop {
+      position-area: block-end span-inline-end;
+      position-try-fallbacks: flip-block, flip-inline;
+      position-try-order: most-block-size;
+  }
+  /* Mode 2 — the anchor primitives without position-area. */
+  html.m-longhand #pop { top: anchor(bottom); left: anchor(left); }
+  /* Mode 3 — JS measures, the stylesheet lays out. */
+  html.m-measured #pop { top: calc(var(--y, 0px) + 4px); left: var(--x, 0px); }
+
+  #readout { position: fixed; right: 8px; bottom: 8px; z-index: 10; margin: 0;
+             padding: 8px; max-width: 46ch; font: 11px/1.45 ui-monospace, monospace;
+             background: #111; color: #0f0; border-radius: 6px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <strong>placement:</strong>
+  <label><input type="radio" name="mode" value="anchor"> anchor + position-area</label>
+  <label><input type="radio" name="mode" value="longhand"> anchor() longhands</label>
+  <label><input type="radio" name="mode" value="measured"> measured (getBoundingClientRect)</label>
+  <span id="support"></span>
+  <button id="envbtn" type="button">environment</button>
+</div>
+
+<table id="t"></table>
+
+<div id="pop" popover="manual"></div>
+<pre id="readout">hover a column header</pre>
+
+<script>
+const COLS = 50, ROWS = 10;
+
+// ---- table -------------------------------------------------------------
+const t = document.getElementById('t');
+const thead = t.createTHead(), hr = thead.insertRow();
+for (let c = 0; c < COLS; c++) {
+    const th = document.createElement('th');
+    th.textContent = `column_${String(c).padStart(2, '0')}`;
+    th.dataset.col = c;
+    hr.appendChild(th);
+}
+const tb = t.createTBody();
+for (let r = 0; r < ROWS; r++) {
+    const tr = tb.insertRow();
+    for (let c = 0; c < COLS; c++) tr.insertCell().textContent = `r${r}c${c}`;
+}
+
+// ---- mode --------------------------------------------------------------
+const pop = document.getElementById('pop');
+const readout = document.getElementById('readout');
+const MODES = ['anchor', 'longhand', 'measured'];
+let mode = new URLSearchParams(location.search).get('mode') || 'measured';
+if (!MODES.includes(mode)) mode = 'measured';
+
+function setMode(m) {
+    mode = m;
+    MODES.forEach(x => document.documentElement.classList.toggle(`m-${x}`, x === m));
+    document.querySelector(`input[value="${m}"]`).checked = true;
+    if (current) place(current);
+}
+document.querySelectorAll('input[name=mode]').forEach(i =>
+    i.addEventListener('change', () => setMode(i.value)));
+
+// ---- environment -------------------------------------------------------
+// Every CSS feature the placement modes rest on, plus what engine is running.
+const FEATURES = [
+    ['position-area', 'block-end span-inline-end'],
+    ['anchor-name', '--a'],
+    ['position-anchor', '--a'],
+    ['top', 'anchor(bottom)'],
+    ['left', 'anchor(center)'],
+    ['width', 'anchor-size(width)'],
+    ['position-try-fallbacks', 'flip-block'],
+    ['position-try-order', 'most-block-size'],
+    ['position-visibility', 'anchors-visible'],
+    ['height', '100dvh'],
+    ['color', 'color-mix(in srgb, red 15%, transparent)'],
+    ['color', 'light-dark(red, blue)'],
+];
+
+// WebKit's UA version is frozen at 605.1.15 and says nothing about the build, so
+// pair it with the Safari/Version token (absent in a plain WKWebView — that absence
+// is itself how you tell an embedded web view from the browser).
+function environment() {
+    const ua = navigator.userAgent;
+    const safari = ua.match(/Version\/([\d.]+) Safari/);
+    const webkit = ua.match(/AppleWebKit\/([\d.]+)/);
+    const lines = [
+        `engine     ${webkit ? 'AppleWebKit/' + webkit[1] : 'not WebKit'}`,
+        `browser    ${safari ? 'Safari ' + safari[1] : 'embedded web view (no Version/ token)'}`,
+        `popover    ${'showPopover' in HTMLElement.prototype}`,
+        `platform   ${navigator.platform}  dpr=${devicePixelRatio}`,
+        `window     ${innerWidth}x${innerHeight}`,
+        `ua         ${ua}`,
+        '',
+        ...FEATURES.map(([p, v]) => `${CSS.supports(p, v) ? 'yes ' : 'NO  '} ${p}: ${v}`),
+    ];
+    return lines.join('\n');
+}
+
+document.getElementById('support').textContent =
+    `position-area:${CSS.supports('position-area', 'block-end')}` +
+    ` anchor-name:${CSS.supports('anchor-name', '--a')}` +
+    ` anchor():${CSS.supports('top', 'anchor(bottom)')}`;
+
+document.getElementById('envbtn').addEventListener('click', () => {
+    readout.textContent = environment();
+    console.log(environment());
+});
+
+// Logged on load as well, so a headless run or a remote inspector has it without
+// anyone clicking anything.
+console.log(environment());
+
+// ---- placement ---------------------------------------------------------
+let current = null;
+
+function place(th) {
+    if (mode === 'measured') {
+        const r = th.getBoundingClientRect();
+        pop.style.setProperty('--x', `${r.left}px`);
+        pop.style.setProperty('--y', `${r.bottom}px`);
+    } else {
+        // Both anchor modes need the pair named. One name, re-pointed at
+        // whichever header is hovered.
+        document.querySelectorAll('th[data-anchored]').forEach(el => {
+            el.style.removeProperty('anchor-name');
+            delete el.dataset.anchored;
+        });
+        th.style.setProperty('anchor-name', '--th');
+        th.dataset.anchored = '1';
+        pop.style.setProperty('position-anchor', '--th');
+    }
+    report(th);
+}
+
+function show(th) {
+    current = th;
+    pop.textContent = `${th.textContent}  (index ${th.dataset.col})`;
+    if (!pop.matches(':popover-open')) pop.showPopover();
+    place(th);
+}
+
+function hide() {
+    current = null;
+    if (pop.matches(':popover-open')) pop.hidePopover();
+}
+
+hr.addEventListener('mouseover', e => {
+    const th = e.target.closest('th');
+    if (th) show(th);
+});
+hr.addEventListener('mouseleave', hide);
+
+// A fixed box does not follow its trigger: re-place while open.
+addEventListener('scroll', () => { if (current) place(current); }, { capture: true, passive: true });
+addEventListener('resize', () => { if (current) place(current); });
+
+// ---- readout -----------------------------------------------------------
+const px = n => Math.round(n);
+
+function report(th) {
+    const a = th.getBoundingClientRect(), p = pop.getBoundingClientRect();
+    const cs = getComputedStyle(pop);
+    const dx = px(p.left - a.left), dy = px(p.top - a.bottom);
+    const onScreen = p.left >= 0 && p.top >= 0
+        && p.right <= innerWidth && p.bottom <= innerHeight;
+    readout.textContent =
+        `mode      ${mode}\n` +
+        `scroll    x=${px(scrollX)} y=${px(scrollY)}   window ${innerWidth}x${innerHeight}\n` +
+        `header    left=${px(a.left)} top=${px(a.top)} bottom=${px(a.bottom)}\n` +
+        `popup     left=${px(p.left)} top=${px(p.top)} w=${px(p.width)} h=${px(p.height)}\n` +
+        `computed  top=${cs.top} left=${cs.left}\n` +
+        `offset    dx=${dx} dy=${dy}   ${Math.abs(dx) <= 2 && dy >= 0 && dy <= 8 ? 'ALIGNED' : 'WRONG'}\n` +
+        `on-screen ${onScreen}`;
+    return readout.textContent;
+}
+
+// ---- headless driver ---------------------------------------------------
+// PROBE(col) scrolls that header into view, opens the popup on it and returns
+// the readout. Two frames between each step so layout has settled.
+window.ENV = environment;
+
+window.PROBE = function (col) {
+    const th = hr.children[col];
+    return new Promise(resolve => {
+        th.scrollIntoView({ block: 'nearest', inline: 'center' });
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            show(th);
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve(report(th))));
+        }));
+    });
+};
+
+setMode(mode);
+</script>
+</body>
+</html>
